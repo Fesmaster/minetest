@@ -51,7 +51,7 @@ extern "C" {
 }
 
 ServerScripting::ServerScripting(Server* server):
-		ScriptApiBase(ScriptingType::Server),
+		ScriptApiBase(ScriptingType::Server, true),
 		asyncEngine(server)
 {
 	setGameDef(server);

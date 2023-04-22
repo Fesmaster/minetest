@@ -38,6 +38,9 @@ extern "C" {
 #include "debug.h"
 #include "config.h"
 
+//Lua Remote DeBugger Integration
+#include "lrdb/server.hpp"
+
 #define SCRIPTAPI_LOCK_DEBUG
 
 // MUST be an invalid mod name so that mods can't
@@ -74,11 +77,14 @@ class GUIEngine;
 class ServerActiveObject;
 struct PlayerHPChangeReason;
 
+void set_script_debugger_settings(bool attach_debugger, int port);
+
 class ScriptApiBase : protected LuaHelper {
 public:
-	ScriptApiBase(ScriptingType type);
+	ScriptApiBase(ScriptingType type, bool attach_debugger=false);
 	// fake constructor to allow script API classes (e.g ScriptApiEnv) to virtually inherit from this one.
 	ScriptApiBase()
+		: m_debugger_port(0)
 	{
 		FATAL_ERROR("ScriptApiBase created without ScriptingType!");
 	}
@@ -173,6 +179,8 @@ private:
 	static int luaPanic(lua_State *L);
 
 	lua_State      *m_luastack = nullptr;
+	lrdb::server	m_debug_server;
+	const int		m_debugger_port;
 
 	IGameDef       *m_gamedef = nullptr;
 	Environment    *m_environment = nullptr;

@@ -62,6 +62,9 @@ extern "C" {
 #endif
 }
 
+//#include "cpp_api/s_base.h"
+void set_script_debugger_settings(bool attach_debugger, int port);
+
 #if !defined(__cpp_rtti) || !defined(__cpp_exceptions)
 #error Minetest cannot be built without exceptions or RTTI
 #endif
@@ -166,6 +169,22 @@ int main(int argc, char *argv[])
 	if (cmd_args.getFlag("debugger")) {
 		if (!use_debugger(argc, argv))
 			warningstream << "Continuing without debugger" << std::endl;
+	}
+
+	if (cmd_args.getFlag("LRDB"))
+	{
+		porting::attachOrCreateConsole();
+		warningstream << "Using Lua Remote DeBugger! Lua code will be slower." << std::endl;
+		int debugger_port = 0;
+		if (cmd_args.getFlag("LRDB_port"))
+		{
+			debugger_port = cmd_args.getS32("LRDB_port");
+		}
+		set_script_debugger_settings(true, debugger_port);
+	}
+	else
+	{
+		set_script_debugger_settings(false, 0);
 	}
 
 	porting::signal_handler_init();
@@ -384,6 +403,10 @@ static void set_allowed_options(OptionList *allowed_options)
 			_("Disable main menu"))));
 	allowed_options->insert(std::make_pair("console", ValueSpec(VALUETYPE_FLAG,
 		_("Starts with the console (Windows only)"))));
+	allowed_options->insert(std::make_pair("LRDB", ValueSpec(VALUETYPE_FLAG,
+		_("Launch with Lua Remote DeBugger (LRDB)"))));
+	allowed_options->insert(std::make_pair("LRDB_port", ValueSpec(VALUETYPE_STRING,
+		_("Specify the port used for LRDB"))));
 #endif
 
 }

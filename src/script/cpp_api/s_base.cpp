@@ -16,7 +16,7 @@ You should have received a copy of the GNU Lesser General Public License along
 with this program; if not, write to the Free Software Foundation, Inc.,
 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA.
 */
-
+#define LRDB_IMPLEMENTATION 1 //to have the implementation version of the include.
 #include "cpp_api/s_base.h"
 #include "cpp_api/s_internal.h"
 #include "cpp_api/s_security.h"
@@ -47,6 +47,12 @@ extern "C" {
 #include "script/common/c_content.h"
 #include <sstream>
 
+#if !defined(LRDB_PORT_DEFAULT)
+#define LRDB_PORT_DEFAULT 21110
+#endif
+
+static int g_lrdb_listen_port = 0;
+
 
 class ModNameStorer
 {
@@ -73,8 +79,10 @@ public:
 	ScriptApiBase
 */
 
-ScriptApiBase::ScriptApiBase(ScriptingType type):
-		m_type(type)
+ScriptApiBase::ScriptApiBase(ScriptingType type, bool attach_debugger /* = false*/) :
+		m_type(type),
+		m_debug_server((attach_debugger) ? g_lrdb_listen_port : 0),
+		m_debugger_port((attach_debugger) ? g_lrdb_listen_port : 0)
 {
 #ifdef SCRIPTAPI_LOCK_DEBUG
 	m_lock_recursion_count = 0;
@@ -82,6 +90,16 @@ ScriptApiBase::ScriptApiBase(ScriptingType type):
 
 	m_luastack = luaL_newstate();
 	FATAL_ERROR_IF(!m_luastack, "luaL_newstate() failed");
+
+	//Lua Remote DeBugger added. port is chosen dynamicaly.
+	//print and update port for LRDB
+	if (m_debugger_port)
+	{
+		actionstream << "Creating Lua Remote DeBugger (LRDB) server on port: " << m_debugger_port << std::endl;
+		//g_lrdb_listen_port++; // only attaching debugger to server thread lua instances now.
+		m_debug_server.reset(m_luastack);
+		
+	}
 
 	lua_atpanic(m_luastack, &luaPanic);
 
@@ -159,6 +177,11 @@ ScriptApiBase::ScriptApiBase(ScriptingType type):
 
 ScriptApiBase::~ScriptApiBase()
 {
+	if (m_debugger_port)
+	{
+		actionstream << "Closing Lua Remote DeBugger (LRDB) server on port: " << m_debugger_port << std::endl;
+		m_debug_server.reset();
+	}
 	lua_close(m_luastack);
 }
 
@@ -501,3 +524,18 @@ Client* ScriptApiBase::getClient()
 	return dynamic_cast<Client *>(m_gamedef);
 }
 #endif
+
+void set_script_debugger_settings(bool attach_debugger, int port)
+{
+	if (attach_debugger)
+	{
+		if (port != 0)
+		{
+			g_lrdb_listen_port = port;
+		}
+		else
+		{
+			g_lrdb_listen_port = LRDB_PORT_DEFAULT;
+		}
+	}
+}

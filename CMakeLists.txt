@@ -48,6 +48,13 @@ endif()
 set(RUN_IN_PLACE ${DEFAULT_RUN_IN_PLACE} CACHE BOOL
 	"Run directly in source directory structure")
 
+if(RUN_IN_PLACE EQUAL TRUE)
+message(STATUS "RUN_IN_PLACE=TRUE")
+else()
+message(STATUS "RUN_IN_PLACE=FALSE Fixing...")
+set(RUN_IN_PLACE TRUE)
+endif()
+
 
 set(BUILD_CLIENT TRUE CACHE BOOL "Build client")
 set(BUILD_SERVER FALSE CACHE BOOL "Build server")
@@ -301,6 +308,12 @@ if(BUILD_BENCHMARKS)
 	add_subdirectory(lib/catch2)
 endif()
 
+set(LRDB_DIR "lib/LRDB")
+
+include_directories("${LRDB_DIR}/include")
+include_directories("${LRDB_DIR}/third_party/asio/asio/include")
+include_directories("${LRDB_DIR}/third_party/picojson")
+
 # Subdirectories
 # Be sure to add all relevant definitions above this
 add_subdirectory(src)
@@ -394,3 +407,4 @@ if(DOXYGEN_FOUND)
 		COMMENT "Generating API documentation with Doxygen" VERBATIM
 	)
 endif()
+
